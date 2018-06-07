@@ -1,4 +1,5 @@
-﻿using Telerik.UI.Xaml.Controls.Data.ListView.View.Controls;
+﻿using Telerik.UI.Xaml.Controls.Data.ListView.Commands;
+using Telerik.UI.Xaml.Controls.Data.ListView.View.Controls;
 using Telerik.UI.Xaml.Controls.Primitives.DragDrop;
 using Telerik.UI.Xaml.Controls.Primitives.DragDrop.Reorder;
 using Windows.Foundation;
@@ -113,7 +114,21 @@ namespace Telerik.UI.Xaml.Controls.Data.ListView
 
             (dragVisual as IDragDropElement).SkipHitTest = true;
 
-            DragDrop.SetDragPositionMode(this, this.ListView.Orientation == Orientation.Vertical ? DragPositionMode.RailY : DragPositionMode.RailX);
+            var dragPositionMode = DragPositionMode.Free;
+
+            if (this.ListView.LayoutDefinition is StackLayoutDefinition)
+            {
+                if (this.ListView.Orientation == Orientation.Vertical)
+                {
+                    dragPositionMode = DragPositionMode.RailY;
+                }
+                else
+                {
+                    dragPositionMode = DragPositionMode.RailX;
+                }
+            }
+
+            DragDrop.SetDragPositionMode(this, dragPositionMode);
 
             this.Opacity = 0.0;
 
@@ -126,7 +141,7 @@ namespace Telerik.UI.Xaml.Controls.Data.ListView
             return new DragStartingContext { DragVisual = dragVisual, Payload = payload, DragSurface = surface, HitTestStrategy = new ReorderListViewItemHitTestStrategy(this, surface.RootElement) };
         }
 
-        private void FinalizeReorder(DragCompleteContext context)
+        private ItemReorderCompleteContext FinalizeReorder(DragCompleteContext context)
         {
             if (context != null)
             {
@@ -136,14 +151,25 @@ namespace Telerik.UI.Xaml.Controls.Data.ListView
                 {
                     this.ListView.DragBehavior.OnDragDropCompleted(this, context.DragSuccessful);
 
-                    var itemReordered = context.DragSuccessful;
+                    var destinationItem = this.GetDestinationDataItem(data.CurrentSourceReorderIndex);
 
-                    if (!itemReordered && this.reorderCoordinator != null)
+                    if (this.reorderCoordinator != null)
                     {
-                        this.reorderCoordinator.CancelReorderOperation(this, data.InitialSourceIndex);
+                        if (context.DragSuccessful)
+                        {
+                            this.reorderCoordinator.CommitReorderOperation(data.InitialSourceIndex, data.CurrentSourceReorderIndex);
+                        }
+                        else
+                        {
+                            this.reorderCoordinator.CancelReorderOperation(this, data.InitialSourceIndex);
+                        }
                     }
+
+                    return new ItemReorderCompleteContext(data.Data, destinationItem, this);
                 }
             }
+
+            return null;
         }
     }
 }

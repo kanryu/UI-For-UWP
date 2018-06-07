@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Windows.Foundation;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Media.Animation;
@@ -20,10 +17,7 @@ namespace Telerik.UI.Xaml.Controls.Primitives.DragDrop.Reorder
         public ReorderItemsCoordinator(IReorderItemsHost host)
         {
             this.Host = host;
-            this.ReorderWithAnimation = true;
         }
-
-        internal bool ReorderWithAnimation { get; set; }
 
         internal IReorderItemsHost Host
         {
@@ -52,6 +46,10 @@ namespace Telerik.UI.Xaml.Controls.Primitives.DragDrop.Reorder
 
                 this.runningAnimations.Clear();
 
+                var sourceItem = this.Host.ElementAt(sourceIndex);
+                var destinationItem = this.Host.ElementAt(destinationIndex);
+
+                this.UpdatePositionAndIndices(destinationItem, sourceItem, false);
                 this.Host.CommitReorderOperation(sourceIndex, destinationIndex);
             }
         }
@@ -149,7 +147,7 @@ namespace Telerik.UI.Xaml.Controls.Primitives.DragDrop.Reorder
             }
         }
 
-        private void UpdatePositionAndIndices(IReorderItem source, IReorderItem destination)
+        private void UpdatePositionAndIndices(IReorderItem source, IReorderItem destination, bool isAnimated = true)
         {
             var step = source.LogicalIndex < destination.LogicalIndex ? 1 : -1;
 
@@ -160,7 +158,7 @@ namespace Telerik.UI.Xaml.Controls.Primitives.DragDrop.Reorder
             {
                 var currentDestinationItem = this.Host.ElementAt(i);
 
-                if (this.animatingElements.Contains(currentDestinationItem))
+                if (currentDestinationItem == null || this.animatingElements.Contains(currentDestinationItem))
                 {
                     continue;
                 }
@@ -181,7 +179,7 @@ namespace Telerik.UI.Xaml.Controls.Primitives.DragDrop.Reorder
                     this.Host.OnItemsReordered(source, currentDestinationItem);
                 };
 
-                if (this.ReorderWithAnimation)
+                if (isAnimated)
                 {
                     this.AnimateItem(currentDestinationItem, destinationPosition, moveCompletedAction);
                 }
